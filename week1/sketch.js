@@ -2,13 +2,13 @@
 // this is the only part of the file you need to edit!
 
 const quotes = [
-  { text: "a type of computer programming in which the goal is to create something expressive instead of something functional", source: "Wikipedia" },
+  { text: "a type of computer programming in which the goal is to create something <br> expressive instead of something functional", source: "Wikipedia" },
   { text: "a craft that brings beautiful and unusual ideas to life", source: "Tim Rodenbröker" },
   { text: "a new creative tool in the arsenal of artists", source: "Asmati Chibalashvili, Igor Savchuk, Svitlana Olianina, Ihor Shalinskyi & Yuriy Korenyuk" },
-  { text: "a world of imagination and problem-solving that's every bit as inventive as painting on a canvas", source: "Simpsons Creative" },
+  { text: "a world of imagination and problem-solving that's every bit as <br> inventive as painting on a canvas", source: "Simpsons Creative" },
   { text: "where programming meets art, and code becomes a medium for expressing artistic ideas", source: "Cratecode" },
-  { text: "expressive, interactive, and dynamic art-something that's not always achievable with traditional mediums", source: "Okoye Ndidiamaka" },
-  { text: "reshaping our perceptions of art, pushing boundaries, and inspiring new generations of creators to explore the limitless possibilities at the intersection of art and technology", source: "Javier Marc" },
+  { text: "expressive, interactive, and dynamic art-something that's not always <br> achievable with traditional mediums", source: "Okoye Ndidiamaka" },
+  { text: "reshaping our perceptions of art, pushing boundaries, and inspiring new <br> generations of creators to explore the limitless possibilities at the intersection of art and technology", source: "Javier Marc" },
   { text: "a deliberate act of letting go and seeing where the process takes you", source: "Patrick Hübner" }
 ];
 // no need to edit anything below this line! 

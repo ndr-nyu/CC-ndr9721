@@ -59,3 +59,9 @@ this is a new line.
 To start a new paragraph, leave an empty line between two lines of text.
 
 This is a new paragraph.
+
+The meaning of code ranges significantly and has evolved throughout history from secretive writing to a modern-day, technical language. It can be viewed as a reflection of humanity - storing a lot of human knowledge and social beliefs, as well as an artistic medium in which you can express creative ideas and test out multiple design iterations quickly. 
+
+Code can work for you by assisting in the tedious, repetitive work that is needed to create moving graphics and other work. It can significantly cut down the production time it takes to bring a conceptual idea to reality, allowing you to work more efficiently and ultimately arrive at the best idea. Alternatively, code could potentially work against you if you only associate it with technical work and don't take the time to understand how to use it. Having people in other professions with different ways of thinking interact and work with code is very beneficial to both the user and to the development of code. Another way code could potentially work against you is if you let it constrain the creative process. By worrying about how it would be possible to code more complex design ideas, you may unintentionally constrain your creativity to a simpler, less interesting design.
+
+This semester, I am very excited to learn how to make animations, learn more about art history & apply that to writing code, and also create work on the pen plotter!
