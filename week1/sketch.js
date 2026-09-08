@@ -2,14 +2,14 @@
 // this is the only part of the file you need to edit!
 
 const quotes = [
-  { text: "the intersection of programming, design, and art", source: "Scott" },
-  { text: "a chance for code to be wrong", source: "Sara" },
-  { text: "surprise, exploration, and aesthetic exploration", source: "Sally" },
-  { text: "process over results", source: "Sam" },
-  { text: "form over function", source: "Sean" },
-  { text: "iterative and experimental", source: "Scooby" },
-  { text: "a community of practice", source: "Seth" },
-  { text: "an opportunity to stick it to the man", source: "Shifty-eyed Susan" }
+  { text: "a type of computer programming in which the goal is to create something expressive instead of something functional", source: "Wikipedia" },
+  { text: "a craft that brings beautiful and unusual ideas to life", source: "Tim Rodenbröker" },
+  { text: "a new creative tool in the arsenal of artists", source: "Asmati Chibalashvili, Igor Savchuk, Svitlana Olianina, Ihor Shalinskyi & Yuriy Korenyuk" },
+  { text: "a world of imagination and problem-solving that's every bit as inventive as painting on a canvas", source: "Simpsons Creative" },
+  { text: "where programming meets art, and code becomes a medium for expressing artistic ideas", source: "Cratecode" },
+  { text: "expressive, interactive, and dynamic art-something that's not always achievable with traditional mediums", source: "Okoye Ndidiamaka" },
+  { text: "reshaping our perceptions of art, pushing boundaries, and inspiring new generations of creators to explore the limitless possibilities at the intersection of art and technology", source: "Javier Marc" },
+  { text: "a deliberate act of letting go and seeing where the process takes you", source: "Patrick Hübner" }
 ];
 // no need to edit anything below this line! 
 // if you have made an error, you can check your history to see what might have gone wrong
