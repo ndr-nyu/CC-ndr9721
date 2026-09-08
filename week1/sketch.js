@@ -8,7 +8,7 @@ const quotes = [
   { text: "a world of imagination and problem-solving that's every bit as \n inventive as painting on a canvas", source: "Simpsons Creative" },
   { text: "where programming meets art, and code becomes a medium for expressing artistic ideas", source: "Cratecode" },
   { text: "expressive, interactive, and dynamic art-something that's not always \n achievable with traditional mediums", source: "Okoye Ndidiamaka" },
-  { text: "reshaping our perceptions of art, pushing boundaries, and inspiring new \n generations of creators to explore the limitless possibilities at the intersection of art and technology", source: "Javier Marc" },
+  { text: "reshaping our perceptions of art, pushing boundaries, and inspiring new \n generations of creators to explore the limitless possibilities at the intersection \n of art and technology", source: "Javier Marc" },
   { text: "a deliberate act of letting go and seeing where the process takes you", source: "Patrick Hübner" }
 ];
 // no need to edit anything below this line! 
