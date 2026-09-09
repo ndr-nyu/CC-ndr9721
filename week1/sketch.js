@@ -2,13 +2,13 @@
 // this is the only part of the file you need to edit!
 
 const quotes = [
-  { text: "a type of computer programming in which the goal is to create something \n expressive instead of something functional", source: "Wikipedia" },
+  { text: "a type of computer programming in which the goal is to create something expressive instead of something functional", source: "Wikipedia" },
   { text: "a craft that brings beautiful and unusual ideas to life", source: "Tim Rodenbröker" },
   { text: "a new creative tool in the arsenal of artists", source: "Asmati Chibalashvili, Igor Savchuk, Svitlana Olianina, Ihor Shalinskyi & Yuriy Korenyuk" },
-  { text: "a world of imagination and problem-solving that's every bit as \n inventive as painting on a canvas", source: "Simpsons Creative" },
+  { text: "a world of imagination and problem-solving that's every bit as inventive as painting on a canvas", source: "Simpsons Creative" },
   { text: "where programming meets art, and code becomes a medium for expressing artistic ideas", source: "Cratecode" },
-  { text: "expressive, interactive, and dynamic art-something that's not always \n achievable with traditional mediums", source: "Okoye Ndidiamaka" },
-  { text: "reshaping our perceptions of art, pushing boundaries, and inspiring new \n generations of creators to explore the limitless possibilities at the intersection \n of art and technology", source: "Javier Marc" },
+  { text: "expressive, interactive, and dynamic art-something that's not always achievable with traditional mediums", source: "Okoye Ndidiamaka" },
+  { text: "reshaping our perceptions of art, pushing boundaries, and inspiring new generations of creators to explore the limitless possibilities at the intersection of art and technology", source: "Javier Marc" },
   { text: "a deliberate act of letting go and seeing where the process takes you", source: "Patrick Hübner" }
 ];
 // no need to edit anything below this line! 
@@ -33,7 +33,7 @@ function pickQuote() {
 }
 
 function draw() {
-  background(255, 20, 250); // set the background color
+  background(137, 207, 240); // set the background color
   drawQuote();  // draw the quote on screen
 }
 
@@ -41,7 +41,7 @@ function drawQuote() {   // draw text
   textAlign(CENTER, CENTER);
   text("Creative Coding is.....", width / 2, height / 2 - 48);
   textStyle(BOLD);
-  text("'" + current.text + "'", width / 2, height / 2);
+  text("'" + current.text + "'", width * 0.1, height / 2 - 100, width * 0.8, 300);
   textAlign(RIGHT, CENTER);
   text("-" + current.source, width - 100, height - 100);
 
