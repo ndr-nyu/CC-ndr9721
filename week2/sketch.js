@@ -2,22 +2,24 @@ let gap = 50; // Fixed space between shape edges
 let margin = 50; // Margin from the edges of the canvas
 let clickStep = 0; // Tracks clicks from 0 to 6
 
-let palettes = [ { bg: '#F4F1DE', top: '#E63946', bottom: '#1D3557' }, // Cream bg, Red top, Navy bottom 
-{ bg: '#EDF2F4', top: '#FFB703', bottom: '#2A9D8F' }, // Light gray bg, Yellow top, Teal bottom 
-{ bg: '#F8F9FA', top: '#8338EC', bottom: '#3A86FF' }, // White bg, Purple top, Blue bottom 
-{ bg: '#FAEDCD', top: '#D4A373', bottom: '#E76F51' } // Warm sand bg, Tan top, Terracotta bottom 
-];
+//let palettes = [ { bg: '#F4F1DE', top: '#E63946', bottom: '#1D3557' }, // Cream bg, Red top, Navy bottom 
+//{ bg: '#EDF2F4', top: '#FFB703', bottom: '#2A9D8F' }, // Light gray bg, Yellow top, Teal bottom 
+//{ bg: '#F8F9FA', top: '#8338EC', bottom: '#3A86FF' }, // White bg, Purple top, Blue bottom 
+//{ bg: '#FAEDCD', top: '#D4A373', bottom: '#E76F51' } // Warm sand bg, Tan top, Terracotta bottom 
+//];
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CORNER);
     rectMode(CORNER);
     angleMode(DEGREES);
+    colorMode(HSB, 360, 100, 100);
 }
 
 function draw() {
-    let currentPalette = palettes[clickStep % palettes.length];
-    background(currentPalette.bg);
+    let topHue = (clickStep * 15) % 360; // Moves 15° around the wheel per click 
+    let bottomHue = (topHue + 30) % 360; // Shifted 30° for harmonious contrast!
+    background(topHue, 10, 95);
 
 let phase = floor(clickStep / 6) % 3; 
 let progress = clickStep % 6; // Step inside current phase (0 to 5) 
@@ -52,16 +54,34 @@ for (let i = 0; i < count; i++) {
    
     // Draw top shrinking shape
     if (topH > 0) {
-        fill(currentPalette.top);
+        fill(topHue, 80, 90);
         drawPhaseShape(phase, true, xPos, startY, w, topH);
     }
 
     // Draw bottom growing shape
     if (bottomH > 0) {
+        fill(bottomHue, 80, 90);
         drawPhaseShape(phase, false, xPos, height / 2 - 50 - bottomH, w, bottomH);
     }
 
 xPos += w + gap;
+}
+
+pop();
+
+// Text instructions at the top of the canvas
+push();
+fill(bottomHue, 80, 80); 
+stroke(0);
+strokeWeight(1.5);
+textAlign(CENTER, CENTER); 
+textSize(16);
+textFont('Courier');
+
+if (clickStep === 0) { 
+    text("Click to start", width / 2, 40); 
+} else { 
+    text("... & keep clicking away", width / 2, 40); 
 }
 
 pop();
@@ -91,3 +111,4 @@ function mouseClicked() {
 function windowResized() { 
     resizeCanvas(windowWidth, windowHeight);
 }
+
