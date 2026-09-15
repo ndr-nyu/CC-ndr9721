@@ -81,7 +81,7 @@ textFont('Courier');
 if (clickStep === 0) { 
     text("Click to start", width / 2, 40); 
 } else { 
-    text("... & keep clicking away", width / 2, 40); 
+    text("... & keep clicking to transform", width / 2, 40); 
 }
 
 pop();
