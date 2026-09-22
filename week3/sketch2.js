@@ -77,15 +77,28 @@ function draw() {
             push(); 
             translate(centerX, centerY); 
             rotate(sqState.angle); 
+
+            // Increased max offset to 55 for a slightly deeper gradient 
+            let yColorOffset = map(r, 0, rows, 0, 55); 
             
-            // 5\. Smooth ombré color blend (white -&gt; soft pink/magenta) 
-            let rVal = 255; 
-            let gVal = map(sqState.colorFade, 0, 1, 255, 60); 
-            let bVal = map(sqState.colorFade, 0, 1, 255, 140); 
+            let rVal = map(sqState.colorFade, 0, 1, 255 - (yColorOffset * 1.3), 255); 
+            let gVal = map(sqState.colorFade, 0, 1, 255 - (yColorOffset * 0.3), 60); 
+            let bVal = map(sqState.colorFade, 0, 1, 255 - (yColorOffset * 0.8), 140); 
             fill(rVal, gVal, bVal);
 
             square(0, 0, squareSize); 
             pop(); 
+        } 
+    } 
+}
+
+// Click anywhere to reset all grid squares back to 0! 
+function mousePressed() { 
+    for (let r = 0; r < rows; r++) { 
+        for (let c = 0; c < cols; c++) { 
+            grid[r][c].angle = 0; 
+            grid[r][c].speed = 0; 
+            grid[r][c].colorFade = 0; 
         } 
     } 
 }
