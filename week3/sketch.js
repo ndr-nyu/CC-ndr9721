@@ -1,5 +1,6 @@
 let baseWidth = 50;
 let baseHeight = 50;
+let ripples = [];
 
 // Global variables to store mouse click position and frame time 
 let rippleX = -1000; 
@@ -16,7 +17,13 @@ function draw() {
     
     let cols = ceil(width / (baseWidth / 2)) + 1; 
     let rows = ceil(height / baseHeight) + 1; 
-    
+
+    for (let i = ripples.length - 1; i >= 0; i--) { 
+        if (frameCount - ripples[i].time > 150) { 
+            ripples.splice(i, 1); 
+        } 
+    }
+
     for (let row = 0; row < rows; row++) { 
         for (let col = 0; col < cols; col++) { 
             let cx = col * (baseWidth / 2);
@@ -24,8 +31,11 @@ function draw() {
             
             let waveAngle = frameCount * 0.015 + row * 0.08; 
             
-            let d = dist(cx, cy, rippleX, rippleY); 
-            let timeElapsed = frameCount - rippleTime; 
+            // 0\. Calculate combined strength of ALL active ripples 
+            let totalRippleWave = 0; 
+            for (let r of ripples) { 
+                let d = dist(cx, cy, r.x, r.y); 
+                let timeElapsed = frameCount - r.time;
 
             // 1\. ADDED: Smooth Fade-In Multiplier (starts at 0 on click, ramps to 1 over 20 frames) 
             let fadeIn = min(1, timeElapsed / 20); 
@@ -33,13 +43,13 @@ function draw() {
             let timeDecay = max(0, 1 - timeElapsed / 140); 
             let rippleAngle = timeElapsed * 0.1 - d * 0.04; 
             
-            // 2\. CHANGED: Multiplied by fadeIn so it swells out smoothly instead of jumping instantly! 
-            let rippleWave = sin(rippleAngle) * fadeIn * distDecay * timeDecay * 1.8; 
-            let totalValue = sin(waveAngle) + rippleWave; 
-            
-            // 3\. CHANGED: Lowered minimum scale to 0.15 so triangles shrink small enough to reveal background! 
+            // 2\. ADDED: Add up wave height from each ripple using '+=' 
+            totalRippleWave += sin(rippleAngle) * fadeIn * distDecay * timeDecay * 1.8; } 
+            // 3\. ADDED: Close the ripple loop HERE so triangles draw even when ripples = []
+
+            let totalValue = sin(waveAngle) + totalRippleWave; 
             let sizeScale = map(totalValue, -2.8, 2.8, 0.15, 1.8); // [1] 
-            let hueVal = map(sin(waveAngle) + rippleWave * 0.4, -2, 2, 140, 280);
+            let hueVal = map(sin(waveAngle) + totalRippleWave * 0.4, -2, 2, 140, 280);
 
             push(); 
             translate(cx, cy); 
@@ -58,9 +68,26 @@ function draw() {
     } 
 } 
 
-// Triggered automatically whenever a mouse button is clicked 
+// 4\. CHANGED: Push a new ripple object onto the array with every click! 
 function mousePressed() { 
-    rippleX = mouseX; 
-    rippleY = mouseY; 
-    rippleTime = frameCount; 
+    ripples.push({ 
+        x: mouseX, 
+        y: mouseY, 
+        time: frameCount 
+    }); 
+}
+
+// 1\. ADDED: Triggers continuously as you hold and drag the mouse! 
+function mouseDragged() { 
+    // 2\. Measure distance moved since last frame 
+    let dragDistance = dist(mouseX, mouseY, pmouseX, pmouseY); 
+    
+    // 3\. Only spawn a new ripple if the mouse moved more than 15 pixels 
+    if (dragDistance > 15) { 
+        ripples.push({ 
+            x: mouseX, 
+            y: mouseY, 
+            time: frameCount 
+        }); 
+    } 
 }
