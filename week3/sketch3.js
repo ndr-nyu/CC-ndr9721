@@ -32,13 +32,13 @@ function draw() {
 
             // 4\. Apply scale transformation relative to tile center 
             scale(scaleFactor); 
-            strokeWeight(2); 
+            let glow = map(dMouse, 0, 250, 1, 0, true);
+            let weight = lerp(2, 3.8, glow); 
+            strokeWeight(weight); 
             
-            // 5\. Mouse hover spotlight blending into warm gold 
-            let glow = map(dMouse, 0, 200, 1, 0, true); 
-            let rVal = lerp(60, 220, glow); 
-            let gVal = lerp(60, 170, glow); 
-            let bVal = lerp(70, 40, glow); 
+            let rVal = lerp(60, 255, glow); 
+            let gVal = lerp(60, 210, glow); 
+            let bVal = lerp(70, 30, glow); 
             stroke(rVal, gVal, bVal);
 
             for (let ringDiam = spacing * 0.8; ringDiam > 15; ringDiam -= 24) { 
