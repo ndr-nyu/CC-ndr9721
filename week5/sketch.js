@@ -1,12 +1,16 @@
 let baseWidth = 50;
 let mySeed = 35188;
-let margin = 50; // 1\. Margin padding from canvas edges 
+let margin = 100; // 1\. Margin padding from canvas edges 
 let rows = 7; // 2\. Exact number of rows to fit vertically
 let bDoExportSvg = false;
 
 function setup() {
     createCanvas(1056, 816);
     noiseSeed(mySeed);
+    // Explicitly group exported SVG paths by stroke color for multi-pen plotting 
+    if (typeof setSvgGroupByStrokeColor === 'function') { 
+        setSvgGroupByStrokeColor(true);
+    }
 }
 
 function draw() {
@@ -44,11 +48,10 @@ function draw() {
                 rotate(rotAngle);
                 scale(sizeScale); 
                 noFill(); 
-                stroke(45, 15, 98); 
                 strokeWeight(1); 
                 
                 // Draw triangle outline 
-                stroke(45, 15, 98);
+                stroke('red');
                 if (isUpward) { 
                     triangle(-baseWidth / 2, baseHeight / 2, baseWidth / 2, baseHeight / 2, 0, -baseHeight / 2); 
                 } else { 
@@ -57,7 +60,7 @@ function draw() {
 
                 // Favorite hatch style, activated by noise threshold 
                 if (hatchNoise > 0.5) { 
-                    stroke(40, 20, 100); 
+                    stroke('blue'); 
                     let spacing = 6; 
                     let slant = 12; // Horizontal shift for original diagonal look 
 
