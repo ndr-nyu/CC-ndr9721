@@ -10,9 +10,14 @@ let lastSec = -1;
 let stepStartTime = 0; 
 let visited = {};
 
+let bgGlow; // Offscreen graphics buffer
+
 function setup() {
     createCanvas(windowWidth, windowHeight);
     calculateScreenDimensions();
+
+    bgGlow = createGraphics(width, height); 
+    renderGlowBackground(); // Draw background ONCE!
 
     // Initialize starting dot near grid center 
     let col = floor(cols / 2); 
@@ -26,11 +31,8 @@ function setup() {
     }); 
     visited[col + "," + row] = true; 
     
-    // Limit attempts to 500 to prevent infinite loading 
-    let attempts = 0; 
-    while (dotPath.length < 40 && attempts < 500) { 
-        addNextDot(); 
-        attempts++; 
+    while (dotPath.length < 40) { 
+        addNextDot();
     } 
 }
 
@@ -49,31 +51,34 @@ function calculateScreenDimensions() {
 function windowResized() { 
     resizeCanvas(windowWidth, windowHeight); 
     calculateScreenDimensions(); 
+
+    bgGlow.resizeCanvas(width, height); 
+    renderGlowBackground();
 }
 
-function drawArcadeCabinet() { 
-    let ctx = drawingContext; 
+// Draws full background into the offscreen buffer once 
+function renderGlowBackground() { 
+    let ctx = bgGlow.drawingContext; 
     
-    // Outer radial gradient (Dark Blue to Black) 
     let gradient = ctx.createRadialGradient( 
-        width / 2, height / 2, 50, 
+        width / 2, height / 2, 100, 
         width / 2, height / 2, max(width, height) * 0.7 
     ); 
-    gradient.addColorStop(0, '#1b2a4a'); // Center: Arcade Navy Glow 
-    gradient.addColorStop(1, '#030509'); // Outer Edge: Almost Black 
+    gradient.addColorStop(0, '#1b2a4a'); 
+    gradient.addColorStop(1, '#030509'); 
+
     ctx.fillStyle = gradient; 
     ctx.fillRect(0, 0, width, height); 
-        
-    // Inner Black Cushion CRT Screen 
-    fill(8);
-    stroke('#2d3f6e'); // Subtle glowing screen bezel border 
-    strokeWeight(3); 
-        
-    rect(screenX, screenY, screenW, screenH, 40); 
+    
+    // Draw cushion screen on the offscreen buffer 
+    bgGlow.fill(8); 
+    bgGlow.stroke('#2d3f6e'); 
+    bgGlow.strokeWeight(3); 
+    bgGlow.rect(screenX, screenY, screenW, screenH, 40); 
 }
 
 function draw() {
-    drawArcadeCabinet();
+    image(bgGlow, 0, 0);
     drawDots();
 
     let currentSec = second(); // Current time (0 to 59)
@@ -139,19 +144,9 @@ function addNextDot() {
         } 
     } 
 
-    // FALLBACK: If trapped, pick ANY valid neighbor on the screen 
-    for (let d of dirs) { 
-        let nc = current.col + d.c; 
-        let nr = current.row + d.r; 
-        if (nc >= 0 && nc < cols && nr >= 0 && nr < rows) { 
-            dotPath.push({ 
-                x: screenX + nc * tileSize + tileSize / 2, 
-                y: screenY + nr * tileSize + tileSize / 2, 
-                col: nc, 
-                row: nr 
-            }); 
-            return; 
-        } 
+    visited = {}; 
+    for (let dot of dotPath) { 
+        visited[dot.col + "," + dot.row] = true; 
     } 
 }
 
