@@ -135,18 +135,37 @@ function addNextDot() {
         if (nc >= 0 && nc < cols && nr >= 0 && nr < rows && !occupied[nc + "," + nr]) {
             visited[nc + "," + nr] = true; 
             dotPath.push({ 
-                x: screenX + nc * tileSize + tileSize / 2, 
-                y: screenY + nr * tileSize + tileSize / 2, 
+                x: nc * tileSize + tileSize / 2, 
+                y: nr * tileSize + tileSize / 2, 
                 col: nc, 
                 row: nr 
             }); 
             return; 
         } 
     } 
+    
+    // 2\. PORTAL SPAWN: If boxed in, create a swirl portal! 
+    current.isPortal = true; // Mark entry portal 
+    
+    let openTiles = []; 
+    for (let c = 0; c < cols; c++) { 
+        for (let r = 0; r < rows; r++) { 
+            if (!occupied[c + "," + r]) { 
+                openTiles.push({ col: c, row: r }); 
+            } 
+        } 
+    }
 
-    visited = {}; 
-    for (let dot of dotPath) { 
-        visited[dot.col + "," + dot.row] = true; 
+    // Transport to a random open tile across the screen 
+    if (openTiles.length > 0) { 
+        let exit = random(openTiles); 
+        dotPath.push({ 
+            x: exit.col * tileSize + tileSize / 2, 
+            y: exit.row * tileSize + tileSize / 2, 
+            col: exit.col, 
+            row: exit.row, 
+            isPortal: true // Mark exit portal 
+        }); 
     } 
 }
 
@@ -166,11 +185,32 @@ function drawPacMan(x, y, d, angle) {
     pop(); 
 }
 
+// Draws a rotating swirl portal 
+// 
+function drawSwirl(x, y) { 
+    push(); 
+    translate(x, y); 
+    rotate(frameCount * 0.08); // Smooth continuous rotation 
+    stroke(0, 255, 255); // Neon cyan swirl color 
+    strokeWeight(3); 
+    noFill(); 
+    
+    // Rotating spiral arcs 
+    arc(0, 0, 24, 24, 0, HALF_PI); 
+    arc(0, 0, 16, 16, PI, THREE_PI_2); 
+    pop(); 
+}
+
 function drawDots() {
-  fill(255, 184, 151); // Classic dot color
-  noStroke();
-  
-  for (let i = 1; i < dotPath.length; i++) {
-    circle(dotPath[i].x, dotPath[i].y, 12);
-  }
+  for (let i = 1; i < dotPath.length; i++) { 
+    let dot = dotPath[i]; 
+    
+    if (dot.isPortal) { 
+        drawSwirl(dot.x, dot.y); 
+    } else { 
+        fill(255, 184, 151); // Standard dot 
+        noStroke(); 
+        circle(dot.x, dot.y, 12); 
+    } 
+} 
 }
