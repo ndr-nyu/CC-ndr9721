@@ -1,42 +1,148 @@
 let dotPath = []; 
-let cols = 16; 
-let rows = 12; 
 let tileSize = 50;
+let cols, rows;
+
+// Inner cushion screen offset & dimensions 
+let screenMargin = 100; // Size of the outer glowing border 
+let screenX, screenY, screenW, screenH; 
+
 let lastSec = -1; 
-let stepStartTime = 0;
+let stepStartTime = 0; 
+let visited = {};
 
 function setup() {
-    createCanvas(800, 600);
-    // Generate the maze path for Pac-Man to follow
-    generateMazePath();
+    createCanvas(windowWidth, windowHeight);
+    calculateScreenDimensions();
+
+    // Initialize starting dot near grid center 
+    let col = floor(cols / 2); 
+    let row = floor(rows / 2); 
+    
+    dotPath.push({ 
+        x: screenX + col * tileSize + tileSize / 2, 
+        y: screenY + row * tileSize + tileSize / 2,
+        col: col, 
+        row: row 
+    }); 
+    visited[col + "," + row] = true; 
+    
+    // Fill queue with exactly 40 dots ahead 
+    while (dotPath.length < 40) { 
+        addNextDot(); 
+    } 
+}
+
+function calculateScreenDimensions() { 
+    // Define inner screen size with generous outer margins 
+    screenX = screenMargin; 
+    screenY = screenMargin; 
+    screenW = width - screenMargin * 2; 
+    screenH = height - screenMargin * 2; 
+    
+    cols = floor(screenW / tileSize); 
+    rows = floor(screenH / tileSize); 
+}
+
+// Automatically recalculates canvas size if browser window is resized 
+function windowResized() { 
+    resizeCanvas(windowWidth, windowHeight); 
+    calculateScreenDimensions(); 
 }
 
 function draw() {
-    background(20);
-
-    // Draw the maze grid
+    drawArcadeCabinet();
     drawDots();
-    let currentSec = second(); // Current time (0 to 59)
-    let nextSec = (currentSec + 1) % 60; // Next second for Pac-Man's movement
 
-    // Sync timer whenever the clock second changes 
+    let currentSec = second(); // Current time (0 to 59)
+    
+    // When second changes, advance the queue 
     if (currentSec !== lastSec) { 
         lastSec = currentSec; 
         stepStartTime = millis(); 
-    }
+        
+        // Remove the eaten dot from the front of array 
+        if (dotPath.length > 1) { 
+            let eatenDot = dotPath.shift(); 
+            delete visited[eatenDot.col + "," + eatenDot.row]; 
+        }
 
-    if (dotPath.length >= 60) { 
-        let startDot = dotPath[currentSec]; 
-        let endDot = dotPath[nextSec];
+        addNextDot(); 
+    } 
+    
+    // Pac-Man always glides between index 0 and 1 
+    if (dotPath.length >= 2) { 
+        let startDot = dotPath[0]; 
+        let endDot = dotPath[1];
+
         let elapsed = millis() - stepStartTime; 
         let progress = constrain(elapsed / 1000.0, 0, 1);
 
         // lerp() calculates smooth position between startDot and endDot 
         let pacX = lerp(startDot.x, endDot.x, progress); 
         let pacY = lerp(startDot.y, endDot.y, progress);
-
         let angle = atan2(endDot.y - startDot.y, endDot.x - startDot.x); // Calculate angle for Pac-Man's direction
+
         drawPacMan(pacX, pacY, 30, angle); // Draw Pac-Man at the interpolated position with the calculated angle
+    } 
+}
+
+// Draws full outer blue glow + black rounded cushion screen 
+function drawArcadeCabinet() { 
+    let ctx = drawingContext; 
+    
+    // Outer radial gradient (Dark Blue to Black) 
+    let gradient = ctx.createRadialGradient( 
+        width / 2, height / 2, 100, 
+        width / 2, height / 2, max(width, height) * 0.7 
+    ); 
+    gradient.addColorStop(0, '#1b2a4a'); // Center: Arcade Navy Glow 
+    gradient.addColorStop(1, '#030509'); // Outer Edge: Almost Black 
+    
+    ctx.fillStyle = gradient; 
+    ctx.fillRect(0, 0, width, height); 
+    
+    // Inner Black "Cushion" CRT Screen 
+    fill(8); // Deep arcade black 
+    stroke('#2d3f6e'); // Subtle glowing screen bezel border 
+    strokeWeight(3); 
+    
+    // 5th parameter (40) rounds the corners for a cushion effect 
+    rect(screenX, screenY, screenW, screenH, 40); 
+}
+
+// Appends 1 valid adjacent grid step to the tail 
+function addNextDot() { 
+    let current = dotPath[dotPath.length - 1]; 
+    let dirs = [ 
+        { c: 0, r: -1 }, { c: 1, r: 0 }, 
+        { c: 0, r: 1 }, { c: -1, r: 0 } 
+    ]; 
+    dirs = shuffle(dirs); 
+
+    let occupied = {}; 
+    for (let dot of dotPath) { 
+        occupied[dot.col + "," + dot.row] = true; 
+    }
+
+    for (let d of dirs) { 
+        let nc = current.col + d.c; 
+        let nr = current.row + d.r; 
+        
+        if (nc >= 0 && nc < cols && nr >= 0 && nr < rows && !occupied[nc + "," + nr]) {
+            visited[nc + "," + nr] = true; 
+            dotPath.push({ 
+                x: screenX + nc * tileSize + tileSize / 2, 
+                y: screenY + nr * tileSize + tileSize / 2, 
+                col: nc, 
+                row: nr 
+            }); 
+            return; 
+        } 
+    } 
+
+    visited = {}; 
+    for (let dot of dotPath) { 
+        visited[dot.col + "," + dot.row] = true; 
     } 
 }
 
@@ -56,107 +162,11 @@ function drawPacMan(x, y, d, angle) {
     pop(); 
 }
 
-function generateMazePath() { 
-    dotPath = []; 
-    let visited = {}; 
-
-    let col = floor(random(3, cols - 3)); 
-    let row = floor(random(3, rows - 3));
-    
-    dotPath.push({ 
-        x: col * tileSize + tileSize / 2, 
-        y: row * tileSize + tileSize / 2, 
-        col: col,
-        row: row 
-    }); 
-    visited[col + "," + row] = true; 
-
-    let attempts = 0;
-    
-    while (dotPath.length < 60 && attempts < 1000) { 
-        attempts++; 
-        let current = dotPath[dotPath.length - 1];
-        
-        // Check adjacent orthogonal directions (up, right, down, left) 
-        let dirs = [ 
-            { c: 0, r: -1 }, 
-            { c: 1, r: 0 }, 
-            { c: 0, r: 1 }, 
-            { c: -1, r: 0 } 
-        ];
-        dirs = shuffle(dirs); 
-        let addedCorridor = false; 
-        
-        for (let d of dirs) { 
-            let corridorLength = floor(random(2, 6)); 
-            let tempSteps = []; 
-            let checkCol = current.col; 
-            let checkRow = current.row; 
-            
-            for (let step = 1; step <= corridorLength; step++) { 
-                let nc = checkCol + d.c; 
-                let nr = checkRow + d.r; 
-                
-                // Ensure step stays inside canvas bounds and on unvisited tiles 
-                if (nc >= 0 && nc < cols && nr >= 0 && nr < rows && !visited[nc + "," + nr]) { 
-                    tempSteps.push({ col: nc, row: nr }); 
-                    checkCol = nc; 
-                    checkRow = nr; 
-                } else { 
-                    break; // Hit a boundary or visited tile 
-                } 
-            } 
-            
-            // If valid straight steps were found, add them to dotPath 
-            if (tempSteps.length > 0) { 
-                for (let s of tempSteps) { 
-                    visited[s.col + "," + s.row] = true; 
-                    dotPath.push({ 
-                        x: s.col * tileSize + tileSize / 2, 
-                        y: s.row * tileSize + tileSize / 2, 
-                        col: s.col, 
-                        row: s.row 
-                    }); 
-                    if (dotPath.length === 60) break; 
-                } 
-                addedCorridor = true; 
-                break; // Stop checking directions for this step 
-            } 
-        } 
-        
-        // Backtrack if trapped 
-        if (!addedCorridor) { 
-            if (dotPath.length > 5) { 
-                let removed = dotPath.pop(); 
-                delete visited[removed.col + "," + removed.row]; 
-            } else { 
-                visited = {}; 
-                dotPath = []; 
-                col = floor(random(3, cols - 3)); 
-                row = floor(random(3, rows - 3)); 
-                dotPath.push({ 
-                    x: col * tileSize + tileSize / 2, 
-                    y: row * tileSize + tileSize / 2, 
-                    col: col, 
-                    row: row 
-                }); 
-                visited[col + "," + row] = true; 
-            } 
-        } 
-    } 
-}
-
-
 function drawDots() {
-  let currentSec = second(); // Current time (0 to 59)
-  
   fill(255, 184, 151); // Classic dot color
   noStroke();
   
-  for (let i = 0; i < dotPath.length; i++) {
-    // Only draw dots that Pac-Man hasn't eaten yet
-    if (i > currentSec) {
-      circle(dotPath[i].x, dotPath[i].y, 12);
-    }
+  for (let i = 1; i < dotPath.length; i++) {
+    circle(dotPath[i].x, dotPath[i].y, 12);
   }
 }
