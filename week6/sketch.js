@@ -26,9 +26,11 @@ function setup() {
     }); 
     visited[col + "," + row] = true; 
     
-    // Fill queue with exactly 40 dots ahead 
-    while (dotPath.length < 40) { 
+    // Limit attempts to 500 to prevent infinite loading 
+    let attempts = 0; 
+    while (dotPath.length < 40 && attempts < 500) { 
         addNextDot(); 
+        attempts++; 
     } 
 }
 
@@ -47,6 +49,27 @@ function calculateScreenDimensions() {
 function windowResized() { 
     resizeCanvas(windowWidth, windowHeight); 
     calculateScreenDimensions(); 
+}
+
+function drawArcadeCabinet() { 
+    let ctx = drawingContext; 
+    
+    // Outer radial gradient (Dark Blue to Black) 
+    let gradient = ctx.createRadialGradient( 
+        width / 2, height / 2, 50, 
+        width / 2, height / 2, max(width, height) * 0.7 
+    ); 
+    gradient.addColorStop(0, '#1b2a4a'); // Center: Arcade Navy Glow 
+    gradient.addColorStop(1, '#030509'); // Outer Edge: Almost Black 
+    ctx.fillStyle = gradient; 
+    ctx.fillRect(0, 0, width, height); 
+        
+    // Inner Black Cushion CRT Screen 
+    fill(8);
+    stroke('#2d3f6e'); // Subtle glowing screen bezel border 
+    strokeWeight(3); 
+        
+    rect(screenX, screenY, screenW, screenH, 40); 
 }
 
 function draw() {
@@ -86,30 +109,6 @@ function draw() {
     } 
 }
 
-// Draws full outer blue glow + black rounded cushion screen 
-function drawArcadeCabinet() { 
-    let ctx = drawingContext; 
-    
-    // Outer radial gradient (Dark Blue to Black) 
-    let gradient = ctx.createRadialGradient( 
-        width / 2, height / 2, 100, 
-        width / 2, height / 2, max(width, height) * 0.7 
-    ); 
-    gradient.addColorStop(0, '#1b2a4a'); // Center: Arcade Navy Glow 
-    gradient.addColorStop(1, '#030509'); // Outer Edge: Almost Black 
-    
-    ctx.fillStyle = gradient; 
-    ctx.fillRect(0, 0, width, height); 
-    
-    // Inner Black "Cushion" CRT Screen 
-    fill(8); // Deep arcade black 
-    stroke('#2d3f6e'); // Subtle glowing screen bezel border 
-    strokeWeight(3); 
-    
-    // 5th parameter (40) rounds the corners for a cushion effect 
-    rect(screenX, screenY, screenW, screenH, 40); 
-}
-
 // Appends 1 valid adjacent grid step to the tail 
 function addNextDot() { 
     let current = dotPath[dotPath.length - 1]; 
@@ -140,9 +139,19 @@ function addNextDot() {
         } 
     } 
 
-    visited = {}; 
-    for (let dot of dotPath) { 
-        visited[dot.col + "," + dot.row] = true; 
+    // FALLBACK: If trapped, pick ANY valid neighbor on the screen 
+    for (let d of dirs) { 
+        let nc = current.col + d.c; 
+        let nr = current.row + d.r; 
+        if (nc >= 0 && nc < cols && nr >= 0 && nr < rows) { 
+            dotPath.push({ 
+                x: screenX + nc * tileSize + tileSize / 2, 
+                y: screenY + nr * tileSize + tileSize / 2, 
+                col: nc, 
+                row: nr 
+            }); 
+            return; 
+        } 
     } 
 }
 
