@@ -108,9 +108,8 @@ function draw() {
             delete visited[eatenDot.col + "," + eatenDot.row]; 
         }
 
-        // Cycle to the next ghost color on the minute change! 
-        if (currentMin !== lastMin) { 
-            lastMin = currentMin; 
+        // Swap to next ghost color at second 1 after the ghost exits! 
+        if (currentSec === 1) { 
             ghostColorIndex = (ghostColorIndex + 1) % ghostColors.length; 
         }
 
@@ -130,21 +129,24 @@ function draw() {
         let pacY = lerp(startDot.y, endDot.y, progress);
         let angle = atan2(endDot.y - startDot.y, endDot.x - startDot.x); // Calculate angle for Pac-Man's direction
 
+        // During second 59, Pac-Man spins 360 degrees, completing right on impact! 
+        if (currentSec === 0) { 
+            angle += progress * TWO_PI; 
+        }
+
         drawPacMan(pacX, pacY, 30, angle); // Draw Pac-Man at the interpolated position with the calculated angle
 
         // TEST: During the final second of every minute (sec 59), ghost zooms in! 
         if (currentSec === 59) { 
-            // Slow down the ghost by spreading progress over 2000ms (2 seconds) 
-            let elapsed = millis() - stepStartTime; 
-            let ghostProgress = constrain(elapsed / 1000.0, 0, 1); // Controls speed! 
-            
-            // Enter from right (width + 50) and exit to left (-50) 
-            let ghostX = lerp(width + 50, -50, ghostProgress); 
-            let ghostY = pacY; // Aligns ghost with Pac-Man's row 
+            let ghostX = lerp(width + 50, pacX, progress); 
+            let ghostY = pacY; 
             drawGhost(ghostX, ghostY, 30, ghostColors[ghostColorIndex]); 
-            
-            // Make Pac-Man do a 360 twirl (TWO\_PI) when bumped! 
-            angle += ghostProgress * TWO_PI;
+        } 
+        // Ghost zooming off-screen left during second 00 
+        else if (currentSec === 0) { 
+            let ghostX = lerp(pacX, -50, progress); 
+            let ghostY = pacY; 
+            drawGhost(ghostX, ghostY, 30, ghostColors[ghostColorIndex]);
         }
     } 
 
