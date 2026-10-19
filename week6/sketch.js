@@ -1,3 +1,4 @@
+// Code optimized to use a pre-rendered JPG background for better performance. No portals implemented yet.
 let dotPath = []; 
 let tileSize = 50;
 let cols, rows;
@@ -7,6 +8,7 @@ let screenMargin = 100; // Size of the outer glowing border
 let screenX, screenY, screenW, screenH; 
 
 let lastSec = -1; 
+let lastMin = -1;
 let stepStartTime = 0; 
 let visited = {};
 
@@ -27,12 +29,15 @@ function setup() {
         x: screenX + col * tileSize + tileSize / 2, 
         y: screenY + row * tileSize + tileSize / 2,
         col: col, 
-        row: row 
+        row: row,
+        isCherry: false // Regular dot by default
     }); 
     visited[col + "," + row] = true; 
     
-    while (dotPath.length < 40) { 
+    let attempts = 0;
+    while (dotPath.length < 40 && attempts < 500) { 
         addNextDot();
+        attempts++;
     } 
 }
 
@@ -82,7 +87,7 @@ function draw() {
     drawDots();
 
     let currentSec = second(); // Current time (0 to 59)
-    
+
     // When second changes, advance the queue 
     if (currentSec !== lastSec) { 
         lastSec = currentSec; 
@@ -112,6 +117,7 @@ function draw() {
 
         drawPacMan(pacX, pacY, 30, angle); // Draw Pac-Man at the interpolated position with the calculated angle
     } 
+
 }
 
 // Appends 1 valid adjacent grid step to the tail 
@@ -123,50 +129,73 @@ function addNextDot() {
     ]; 
     dirs = shuffle(dirs); 
 
-    let occupied = {}; 
-    for (let dot of dotPath) { 
-        occupied[dot.col + "," + dot.row] = true; 
-    }
+    // Calculate if this future dot will be eaten at second 00! 
+    let futureSecond = (second() + dotPath.length) % 60; 
+    let spawnCherry = (futureSecond === 0);
 
+    // Try to find an unvisited neighbor first
     for (let d of dirs) { 
         let nc = current.col + d.c; 
         let nr = current.row + d.r; 
         
-        if (nc >= 0 && nc < cols && nr >= 0 && nr < rows && !occupied[nc + "," + nr]) {
+        // Calculate the potential pixel position first 
+        let nextX = screenX + nc * tileSize + tileSize / 2; 
+        let nextY = screenY + nr * tileSize + tileSize / 2; 
+        
+        // Put the overlap check directly inside this IF statement! 
+        if ( 
+            nc >= 0 && nc < cols && 
+            nr >= 0 && nr < rows && 
+            !isOverlapping(nextX, nextY) // Checks distance before pushing 
+        ) { 
             visited[nc + "," + nr] = true; 
             dotPath.push({ 
-                x: nc * tileSize + tileSize / 2, 
-                y: nr * tileSize + tileSize / 2, 
+                x: nextX, 
+                y: nextY, 
                 col: nc, 
-                row: nr 
+                row: nr, 
+                isCherry: spawnCherry // Regular dot by default
             }); 
             return; 
         } 
     } 
-    
-    // 2\. PORTAL SPAWN: If boxed in, create a swirl portal! 
-    current.isPortal = true; // Mark entry portal 
-    
-    let openTiles = []; 
-    for (let c = 0; c < cols; c++) { 
-        for (let r = 0; r < rows; r++) { 
-            if (!occupied[c + "," + r]) { 
-                openTiles.push({ col: c, row: r }); 
-            } 
-        } 
-    }
 
-    // Transport to a random open tile across the screen 
-    if (openTiles.length > 0) { 
-        let exit = random(openTiles); 
-        dotPath.push({ 
-            x: exit.col * tileSize + tileSize / 2, 
-            y: exit.row * tileSize + tileSize / 2, 
-            col: exit.col, 
-            row: exit.row, 
-            isPortal: true // Mark exit portal 
-        }); 
+    // FALLBACK if blocked 
+    for (let d of dirs) { 
+        let nc = current.col + d.c; 
+        let nr = current.row + d.r; 
+        if (nc >= 0 && nc < cols && nr >= 0 && nr < rows) { 
+            dotPath.push({ 
+                x: screenX + nc * tileSize + tileSize / 2, 
+                y: screenY + nr * tileSize + tileSize / 2, 
+                col: nc, 
+                row: nr, 
+                isCherry: spawnCherry // Regular dot by default
+            }); 
+            return; 
+        } 
     } 
+
+    visited = {}; 
+    for (let dot of dotPath) { 
+        visited[dot.col + "," + dot.row] = true; 
+    } 
+    
+}
+
+// Helper function to check spatial distance before placing a dot! 
+function isOverlapping(nextX, nextY) { 
+    for (let i = dotPath.length - 1; i >= 0; i--) { 
+        let x = dotPath[i].x; 
+        let y = dotPath[i].y; 
+        
+        // Returns true if candidate point is closer than tileSize 
+        if (dist(nextX, nextY, x, y) < tileSize) { 
+            return true; 
+        } 
+    } 
+    return false; // Space is clear 
+    
 }
 
 // Draws Pac-Man with an animated mouth 
@@ -185,32 +214,35 @@ function drawPacMan(x, y, d, angle) {
     pop(); 
 }
 
-// Draws a rotating swirl portal 
-// 
-function drawSwirl(x, y) { 
-    push(); 
-    translate(x, y); 
-    rotate(frameCount * 0.08); // Smooth continuous rotation 
-    stroke(0, 255, 255); // Neon cyan swirl color 
-    strokeWeight(3); 
-    noFill(); 
-    
-    // Rotating spiral arcs 
-    arc(0, 0, 24, 24, 0, HALF_PI); 
-    arc(0, 0, 16, 16, PI, THREE_PI_2); 
-    pop(); 
-}
-
 function drawDots() {
   for (let i = 1; i < dotPath.length; i++) { 
-    let dot = dotPath[i]; 
-    
-    if (dot.isPortal) { 
-        drawSwirl(dot.x, dot.y); 
+    if (dotPath[i].isCherry) { 
+        drawCherries(dotPath[i].x, dotPath[i].y); 
     } else { 
-        fill(255, 184, 151); // Standard dot 
+        fill(255, 184, 151); 
         noStroke(); 
-        circle(dot.x, dot.y, 12); 
+        circle(dotPath[i].x, dotPath[i].y, 12); 
     } 
-} 
+}
+}
+
+// Draws a pair of cherries centered at (x, y)
+function drawCherries(x, y) {
+  push();
+  translate(x, y);
+  
+  // Stems (Green lines)
+  stroke(40, 180, 40);
+  strokeWeight(2);
+  noFill();
+  line(-4, 2, 0, -8); 
+  line(4, 4, 0, -8);  
+  
+  // Cherries (Red circles)
+  fill(220, 20, 60);
+  noStroke();
+  circle(-5, 4, 10);
+  circle(5, 6, 10);
+  
+  pop();
 }

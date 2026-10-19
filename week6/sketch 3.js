@@ -1,3 +1,4 @@
+// Code optimized to use a pre-rendered JPG background for better performance. No portals implemented yet.
 let dotPath = []; 
 let tileSize = 50;
 let cols, rows;
@@ -5,12 +6,21 @@ let cols, rows;
 // Inner cushion screen offset & dimensions 
 let screenMargin = 100; // Size of the outer glowing border 
 let screenX, screenY, screenW, screenH; 
+let bgGlow; // Offscreen graphics buffer
 
 let lastSec = -1; 
+let lastMin = -1;
 let stepStartTime = 0; 
 let visited = {};
 
-let bgGlow; // Offscreen graphics buffer
+// Classic Pac-Man Ghost Colors: Red, Pink, Cyan, Orange 
+let ghostColors = [ 
+    [255, 0, 0], // Blinky (Red) 
+    [255, 184, 222], // Pinky (Pink) 
+    [0, 255, 255], // Inky (Cyan) 
+    [255, 184, 82] // Clyde (Orange) 
+]; 
+let ghostColorIndex = 0; // Tracks which ghost color is up next
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -27,12 +37,15 @@ function setup() {
         x: screenX + col * tileSize + tileSize / 2, 
         y: screenY + row * tileSize + tileSize / 2,
         col: col, 
-        row: row 
+        row: row,
+        isCherry: false // Regular dot by default
     }); 
     visited[col + "," + row] = true; 
     
-    while (dotPath.length < 40) { 
+    let attempts = 0;
+    while (dotPath.length < 40 && attempts < 500) { 
         addNextDot();
+        attempts++;
     } 
 }
 
@@ -82,7 +95,8 @@ function draw() {
     drawDots();
 
     let currentSec = second(); // Current time (0 to 59)
-    
+    let currentMin = minute();
+
     // When second changes, advance the queue 
     if (currentSec !== lastSec) { 
         lastSec = currentSec; 
@@ -92,6 +106,12 @@ function draw() {
         if (dotPath.length > 1) { 
             let eatenDot = dotPath.shift(); 
             delete visited[eatenDot.col + "," + eatenDot.row]; 
+        }
+
+        // Cycle to the next ghost color on the minute change! 
+        if (currentMin !== lastMin) { 
+            lastMin = currentMin; 
+            ghostColorIndex = (ghostColorIndex + 1) % ghostColors.length; 
         }
 
         addNextDot(); 
@@ -111,7 +131,23 @@ function draw() {
         let angle = atan2(endDot.y - startDot.y, endDot.x - startDot.x); // Calculate angle for Pac-Man's direction
 
         drawPacMan(pacX, pacY, 30, angle); // Draw Pac-Man at the interpolated position with the calculated angle
+
+        // TEST: During the final second of every minute (sec 59), ghost zooms in! 
+        if (currentSec === 59) { 
+            // Slow down the ghost by spreading progress over 2000ms (2 seconds) 
+            let elapsed = millis() - stepStartTime; 
+            let ghostProgress = constrain(elapsed / 1000.0, 0, 1); // Controls speed! 
+            
+            // Enter from right (width + 50) and exit to left (-50) 
+            let ghostX = lerp(width + 50, -50, ghostProgress); 
+            let ghostY = pacY; // Aligns ghost with Pac-Man's row 
+            drawGhost(ghostX, ghostY, 30, ghostColors[ghostColorIndex]); 
+            
+            // Make Pac-Man do a 360 twirl (TWO\_PI) when bumped! 
+            angle += ghostProgress * TWO_PI;
+        }
     } 
+
 }
 
 // Appends 1 valid adjacent grid step to the tail 
@@ -123,22 +159,48 @@ function addNextDot() {
     ]; 
     dirs = shuffle(dirs); 
 
-    let occupied = {}; 
-    for (let dot of dotPath) { 
-        occupied[dot.col + "," + dot.row] = true; 
-    }
+    // Calculate if this future dot will be eaten at second 00! 
+    let futureSecond = (second() + dotPath.length) % 60; 
+    let spawnCherry = (futureSecond === 0);
 
+    // Try to find an unvisited neighbor first
     for (let d of dirs) { 
         let nc = current.col + d.c; 
         let nr = current.row + d.r; 
         
-        if (nc >= 0 && nc < cols && nr >= 0 && nr < rows && !occupied[nc + "," + nr]) {
+        // Calculate the potential pixel position first 
+        let nextX = screenX + nc * tileSize + tileSize / 2; 
+        let nextY = screenY + nr * tileSize + tileSize / 2; 
+        
+        // Put the overlap check directly inside this IF statement! 
+        if ( 
+            nc >= 0 && nc < cols && 
+            nr >= 0 && nr < rows && 
+            !isOverlapping(nextX, nextY) // Checks distance before pushing 
+        ) { 
             visited[nc + "," + nr] = true; 
+            dotPath.push({ 
+                x: nextX, 
+                y: nextY, 
+                col: nc, 
+                row: nr, 
+                isCherry: spawnCherry // Regular dot by default
+            }); 
+            return; 
+        } 
+    } 
+
+    // FALLBACK if blocked 
+    for (let d of dirs) { 
+        let nc = current.col + d.c; 
+        let nr = current.row + d.r; 
+        if (nc >= 0 && nc < cols && nr >= 0 && nr < rows) { 
             dotPath.push({ 
                 x: screenX + nc * tileSize + tileSize / 2, 
                 y: screenY + nr * tileSize + tileSize / 2, 
                 col: nc, 
-                row: nr 
+                row: nr, 
+                isCherry: spawnCherry // Regular dot by default
             }); 
             return; 
         } 
@@ -148,6 +210,22 @@ function addNextDot() {
     for (let dot of dotPath) { 
         visited[dot.col + "," + dot.row] = true; 
     } 
+    
+}
+
+// Helper function to check spatial distance before placing a dot! 
+function isOverlapping(nextX, nextY) { 
+    for (let i = dotPath.length - 1; i >= 0; i--) { 
+        let x = dotPath[i].x; 
+        let y = dotPath[i].y; 
+        
+        // Returns true if candidate point is closer than tileSize 
+        if (dist(nextX, nextY, x, y) < tileSize) { 
+            return true; 
+        } 
+    } 
+    return false; // Space is clear 
+    
 }
 
 // Draws Pac-Man with an animated mouth 
@@ -167,10 +245,60 @@ function drawPacMan(x, y, d, angle) {
 }
 
 function drawDots() {
-  fill(255, 184, 151); // Classic dot color
-  noStroke();
+  for (let i = 1; i < dotPath.length; i++) { 
+    if (dotPath[i].isCherry) { 
+        drawCherries(dotPath[i].x, dotPath[i].y); 
+    } else { 
+        fill(255, 184, 151); 
+        noStroke(); 
+        circle(dotPath[i].x, dotPath[i].y, 12); 
+    } 
+}
+}
+
+// Draws a pair of cherries centered at (x, y)
+function drawCherries(x, y) {
+  push();
+  translate(x, y);
   
-  for (let i = 1; i < dotPath.length; i++) {
-    circle(dotPath[i].x, dotPath[i].y, 12);
-  }
+  // Stems (Green lines)
+  stroke(40, 180, 40);
+  strokeWeight(2);
+  noFill();
+  line(-4, 2, 0, -8); 
+  line(4, 4, 0, -8);  
+  
+  // Cherries (Red circles)
+  fill(220, 20, 60);
+  noStroke();
+  circle(-5, 4, 10);
+  circle(5, 6, 10);
+  
+  pop();
+}
+
+// Draws a classic arcade ghost centered at (x, y) 
+// 
+function drawGhost(x, y, d, colorRGB) { 
+    push(); 
+    translate(x, y); 
+    
+    // Ghost Body 
+    fill(colorRGB[0], colorRGB[1], colorRGB[2]); 
+    noStroke(); 
+    
+    // Dome head & rectangular bottom 
+    arc(0, -d * 0.1, d, d, PI, 0); 
+    rect(-d / 2, -d * 0.1, d, d * 0.4); 
+    
+    // Outer White Eyes 
+    fill(255); 
+    ellipse(-d * 0.2, -d * 0.1, d * 0.3, d * 0.4); 
+    ellipse(d * 0.2, -d * 0.1, d * 0.3, d * 0.4); 
+    
+    // Blue Pupils 
+    fill(0, 0, 255); 
+    ellipse(-d * 0.2, -d * 0.1, d * 0.15, d * 0.2); 
+    ellipse(d * 0.2, -d * 0.1, d * 0.15, d * 0.2); 
+    pop(); 
 }

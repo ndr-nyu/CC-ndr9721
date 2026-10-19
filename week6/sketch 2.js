@@ -1,3 +1,4 @@
+// Original code - not optimized with JPG background, but still works fine.
 let dotPath = []; 
 let tileSize = 50;
 let cols, rows;
