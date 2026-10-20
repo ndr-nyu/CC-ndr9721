@@ -22,6 +22,10 @@ let ghostColors = [
 ]; 
 let ghostColorIndex = 0; // Tracks which ghost color is up next
 
+let isPowerMode = false; 
+let powerModeStartTime = 0;
+let TEST_HOURLY = false;
+
 function setup() {
     createCanvas(windowWidth, windowHeight);
     calculateScreenDimensions();
@@ -129,27 +133,80 @@ function draw() {
         let pacY = lerp(startDot.y, endDot.y, progress);
         let angle = atan2(endDot.y - startDot.y, endDot.x - startDot.x); // Calculate angle for Pac-Man's direction
 
-        // During second 59, Pac-Man spins 360 degrees, completing right on impact! 
-        if (currentSec === 0) { 
-            angle += progress * TWO_PI; 
+        // Check if Power Mode duration (5 seconds / 5000ms) is over 
+        if (isPowerMode && millis() - powerModeStartTime > 5000) { 
+            isPowerMode = false; 
         }
 
-        drawPacMan(pacX, pacY, 30, angle); // Draw Pac-Man at the interpolated position with the calculated angle
+        // Check if it's the top of the hour (or if test mode is enabled) 
+        let isHourlyEvent = (currentMin === 0) || TEST_HOURLY;
 
-        // TEST: During the final second of every minute (sec 59), ghost zooms in! 
-        if (currentSec === 59) { 
-            let ghostX = lerp(width + 50, pacX, progress); 
-            let ghostY = pacY; 
-            drawGhost(ghostX, ghostY, 30, ghostColors[ghostColorIndex]); 
+        // A. HOURLY EVENT (minute === 0) -&gt; 4 Ghosts Scatter!
+        if (isHourlyEvent) { 
+            // Trigger Power Mode on second 00 
+            if (currentSec === 0 && !isPowerMode) { 
+                isPowerMode = true; 
+                powerModeStartTime = millis(); 
+            }
+            
+            if (isPowerMode) { 
+                let fleeProgress = (millis() - powerModeStartTime) / 5000.0; 
+            
+            // Flashing Screen Border  
+            if (frameCount % 10 < 5) { 
+                stroke(255, 255, 255); 
+                strokeWeight(6); 
+                noFill(); 
+                rect(screenX, screenY, screenW, screenH, 40); 
+            } 
+            
+            // 4 Target Corners: Top-Left, Top-Right, Bottom-Left, Bottom-Right 
+            let targets = [ 
+                { x: -100, y: -100 }, // Blinky (Top-Left) 
+                { x: width + 100, y: -100 }, // Pinky (Top-Right) 
+                { x: -100, y: height + 100 }, // Inky (Bottom-Left) 
+                { x: width + 100, y: height + 100 } // Clyde (Bottom-Right) 
+            ]; 
+            
+            // 4 Ghosts scatter radially from Pac-Man to their off-screen corners! 
+            for (let i = 0; i < ghostColors.length; i++) { 
+                let ghostX = lerp(pacX, targets[i].x, fleeProgress); 
+                let ghostY = lerp(pacY, targets[i].y, fleeProgress); 
+                let scaredColor = (fleeProgress > 0.7 && frameCount % 10 < 5) ? color(255) : color(33, 33, 222); 
+                drawGhost(ghostX, ghostY, 30, scaredColor); 
+            } 
         } 
-        // Ghost zooming off-screen left during second 00 
-        else if (currentSec === 0) { 
-            let ghostX = lerp(pacX, -50, progress); 
-            let ghostY = pacY; 
-            drawGhost(ghostX, ghostY, 30, ghostColors[ghostColorIndex]);
-        }
+        else if (currentSec === 59) { 
+            // 4 Ghosts line up back-to-back approaching Pac-Man during sec 59 of min 59 
+            for (let i = 0; i < ghostColors.length; i++) { 
+                let ghostX = lerp(width + 50 + (i * 35), pacX + (i * 35), progress); 
+                drawGhost(ghostX, pacY, 30, ghostColors[i]); 
+            } 
+        } 
+        drawPacMan(pacX, pacY, 30, angle); 
     } 
 
+    // B. REGULAR MINUTE EVENT (currentMin !== 0) -> 1 Ghost Hit & Spin 
+    else { 
+        // Pac-Man spins 360 degrees on second 00 right after impact 
+        if (currentSec === 0) { 
+            angle += progress * TWO_PI; 
+        } 
+        drawPacMan(pacX, pacY, 30, angle); 
+
+        // Single Ghost enters from right on second 59 
+        if (currentSec === 59) { 
+            let ghostX = lerp(width + 50, pacX, progress); 
+            drawGhost(ghostX, pacY, 30, ghostColors[ghostColorIndex]); 
+        } 
+
+        // Single Ghost exits to left on second 00 
+        else if (currentSec === 0) { 
+            let ghostX = lerp(pacX, -50, progress); 
+            drawGhost(ghostX, pacY, 30, ghostColors[ghostColorIndex]); 
+        } 
+    } 
+}
 }
 
 // Appends 1 valid adjacent grid step to the tail 
@@ -280,7 +337,6 @@ function drawCherries(x, y) {
 }
 
 // Draws a classic arcade ghost centered at (x, y) 
-// 
 function drawGhost(x, y, d, colorRGB) { 
     push(); 
     translate(x, y); 
@@ -302,5 +358,19 @@ function drawGhost(x, y, d, colorRGB) {
     fill(0, 0, 255); 
     ellipse(-d * 0.2, -d * 0.1, d * 0.15, d * 0.2); 
     ellipse(d * 0.2, -d * 0.1, d * 0.15, d * 0.2); 
+    pop(); 
+}
+
+function drawTitle() { 
+    push(); 
+    textAlign(CENTER, CENTER); 
+    textSize(24); 
+    
+    textFont('MyPacFont'); // Use the custom Pac-Man font
+    
+    fill(255, 255, 0); // Pac-Man Yellow 
+    noStroke(); 
+    
+    text("PAC-MAN CLOCK", width / 2, screenMargin / 2); 
     pop(); 
 }
