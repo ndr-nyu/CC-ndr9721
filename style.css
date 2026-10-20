@@ -1,0 +1,92 @@
+/* Reset defaults & set dark theme background */ 
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+} 
+
+body { 
+    background-color: #0f172a; /* Dark slate background */ 
+    color: #f8fafc; /* Bright, readable text */ 
+    font-family: system-ui, -apple-system, sans-serif;  
+    min-height: 100vh; 
+    padding: 2rem;
+
+    /* Flexbox to center everything on the screen */ 
+    display: flex; 
+    align-items: center; /* Vertically center */ 
+    justify-content: center; /* Horizontally center */
+} 
+
+/* Two-column wrapper */ 
+.portfolio-container { 
+    display: grid; 
+    grid-template-columns: 260px 1fr; /* Left header, right grid */ 
+    gap: 3.5rem; 
+    max-width: 1100px; 
+    width: 100%; 
+    align-items: center; /* Vertically aligns header with card grid */ 
+} 
+
+.sidebar h1 { 
+    font-size: 2.2rem; 
+    color: #38bdf8; 
+    letter-spacing: -0.02em; 
+    margin-bottom: 0.5rem; 
+} 
+
+.sidebar .subtitle { 
+    color: #94a3b8; 
+    font-size: 1rem; 
+    line-height: 1.4;
+}
+
+/* Right Grid for Project Cards */ 
+.grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+    gap: 1.25rem; 
+} 
+
+/* Card Styling */ 
+.card { 
+    background-color: rgba(30, 41, 59, 0.75); /* Semi-transparent to let sparklers show through */ 
+    backdrop-filter: blur(8px); /* Soft glass effect */ 
+    border: 1px solid #334155; 
+    border-radius: 12px; 
+    padding: 1.25rem; 
+    text-decoration: none; 
+    color: inherit; 
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; 
+}
+
+/* Subtle Hover Animation */ 
+.card:hover { 
+    transform: translateY(-5px); 
+    border-color: #38bdf8; 
+    box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.25); 
+}
+
+.card h2 { 
+    font-size: 1.1rem; 
+    color: #f1f5f9; 
+    margin-bottom: 0.4rem; 
+} 
+
+.card p { 
+    font-size: 0.85rem; 
+    color: #94a3b8; 
+    line-height: 1.4; 
+}
+
+/* Responsive adjustment for small screens */ 
+@media (max-width: 768px) { 
+    body { 
+        align-items: flex-start; 
+    }
+    
+    .portfolio-container { 
+        grid-template-columns: 1fr; /* Stacks vertically on mobile */ 
+        gap: 2rem; 
+    } 
+}
