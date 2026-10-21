@@ -89,7 +89,7 @@ function renderGlowBackground() {
     
     // Draw cushion screen on the offscreen buffer 
     bgGlow.fill(8); 
-    bgGlow.stroke('#2d3f6e'); 
+    bgGlow.stroke(255, 255, 0, 150); // Semi-transparent yellow glow
     bgGlow.strokeWeight(3); 
     bgGlow.rect(screenX, screenY, screenW, screenH, 40); 
 }
@@ -139,7 +139,7 @@ function draw() {
         }
 
         // Check if it's the top of the hour (or if test mode is enabled) 
-        let isHourlyEvent = (currentMin === 0) || TEST_HOURLY;
+        let isHourlyEvent = (currentMin === 59 && currentSec === 59) || (currentMin === 0) || TEST_HOURLY;
 
         // A. HOURLY EVENT (minute === 0) -&gt; 4 Ghosts Scatter!
         if (isHourlyEvent) { 
@@ -206,6 +206,7 @@ function draw() {
             drawGhost(ghostX, pacY, 30, ghostColors[ghostColorIndex]); 
         } 
     } 
+    drawTitle();
 }
 }
 
@@ -363,14 +364,21 @@ function drawGhost(x, y, d, colorRGB) {
 
 function drawTitle() { 
     push(); 
-    textAlign(CENTER, CENTER); 
-    textSize(24); 
-    
-    textFont('MyPacFont'); // Use the custom Pac-Man font
-    
-    fill(255, 255, 0); // Pac-Man Yellow 
+    textAlign(CENTER, CENTER);  
+    textFont('Press Start 2P', 'monospace'); 
+    textSize(28);
     noStroke(); 
     
-    text("PAC-MAN CLOCK", width / 2, screenMargin / 2); 
+    let x = width / 2;
+    let opticalY = (screenMargin / 2) + 4;
+    let offset = 3; // Pixel distance for the shadow shift
+
+    // LAYER 1 (BEHIND): Draw orange shadow text first with offset! 
+    fill(255, 120, 0); // Arcade Orange  
+    text("PAC-MAN CLOCK", x + offset, opticalY + offset);
+
+    // LAYER 2 (FRONT): Draw main yellow text second on top!
+    fill(255, 255, 0); // Pac-Man Yellow 
+    text("PAC-MAN CLOCK", x, opticalY); 
     pop(); 
 }
