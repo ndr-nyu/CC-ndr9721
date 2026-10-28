@@ -1,6 +1,6 @@
 # Week 7 Notes
 
-My projection mapping was Halloween themed. I created a glowing background for each of the surfaces. Then, I experimented with different eye shapes, blinking characteristics, pupil shapes and movement, and colors. It took me a few iterations to get my final sequence. I tried to give each set of eyes different character. Overall I had a lot of fun with this assignment and would absolutely try this again.
+My projection mapping was Halloween themed. I created a glowing background for each of the surfaces. Then, I experimented with different eye shapes, blinking characteristics, pupil shapes and movement, and colors. It took me a few iterations to get my final sequence. I tried to give each set of eyes different character. I used framecount to create the glow and blinking effects. For the cyclops pupil, I used noise because I didn't like the effect I got when I coded it using framecount and sin. It took a bit of experimenting but I was happy with this final sketch. Overall I had a lot of fun with this assignment and would absolutely try this again.
 
 Please open the "media" folder to view a picture and video of the assignment.
 
