@@ -1,4 +1,9 @@
-# week7
+# Week 7 Notes
+
+My projection mapping was Halloween themed. I created a glowing background for each of the surfaces. Then, I experimented with different eye shapes, blinking characteristics, pupil shapes and movement, and colors. It took me a few iterations to get my final sequence. I tried to give each set of eyes different character. Overall I had a lot of fun with this assignment and would absolutely try this again.
+
+Please open the "media" folder to view a picture and video of the assignment.
+
 
 ## Getting Started
 
