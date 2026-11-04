@@ -1,4 +1,6 @@
-# week8
+# Week 8 Notes
+
+For this week's project, I used the live camera to create a pop-art inspired self portrait. If you click your mouse, the color scheme will change. You can also press 'g' on your keyboard to change the amount of pop-art grids or 's' to save your favorite pop-art photo! I played around with having the color schemes and contrast change as you move your mouse around the screen, but was not liking the effect.
 
 ## Getting Started
 
