@@ -1,10 +1,13 @@
 let video; 
 let handPose; 
 let hands = [];
+
 let isPaused = false; 
-let pincedLastFrame = false;
+let pinchedLastFrame = false;
+
 let shapeWidth = 60; 
 let shapeHeight = 60;
+
 let fallingShapes = [];
 
 async function setup() {
@@ -39,11 +42,11 @@ function draw() {
         ); 
         
         // --- GESTURE 2:If pinched and wasn't pinched last frame, toggle state 
-        if (pinchDist < 30 && !pincedLastFrame) { 
+        if (pinchDist < 30 && !pinchedLastFrame) { 
             isPaused = !isPaused; 
-            pincedLastFrame = true; 
+            pinchedLastFrame = true; 
         } else if (pinchDist >= 30) { 
-            pincedLastFrame = false; 
+            pinchedLastFrame = false; 
         } 
     }
 
@@ -69,7 +72,8 @@ function draw() {
             fallingShapes.push({ 
                 x: random(width), 
                 y: 0, 
-                speed: random(2, 5) 
+                speed: random(2, 5),
+                type: random(['rect', 'circle', 'triangle', 'heart'])
             }); 
         } 
     }
@@ -82,8 +86,8 @@ function draw() {
     for (let i = fallingShapes.length - 1; i >= 0; i--) { 
         let s = fallingShapes[i]; 
         
-        // Draw shape with currently active stretch dimensions 
-        rect(s.x, s.y, shapeWidth, shapeHeight, 8); 
+        // Render current shape 
+        drawShape(s.type, s.x, s.y, shapeWidth, shapeHeight); 
         
         if (!isPaused) { 
             s.y += s.speed; 
@@ -100,4 +104,38 @@ function draw() {
     noStroke(); 
     textSize(16); 
     text(isPaused ? "Status: PAUSED (Pinch to resume)" : "Status: FALLING (Pinch to pause)", 20, 30); 
+    text("Stretch shapes by moving two hands apart or together", 20, 50);
+}
+
+// --- HELPER FUNCTION: SHAPE SELECTOR --- 
+function drawShape(type, x, y, w, h) { 
+    if (type === 'rect') { 
+        rect(x, y, w, h, 8); 
+    } else if (type === 'circle') { 
+        ellipse(x, y, w, h); 
+    } else if (type === 'triangle') { 
+        triangle( 
+            x, y - h / 2, 
+            x - w / 2, 
+            y + h / 2, 
+            x + w / 2, 
+            y + h / 2 
+        ); 
+    } else if (type === 'heart') { 
+        drawHeart(x, y, w, h); 
+    } 
+} 
+
+// --- HELPER FUNCTION: PARAMETRIC HEART --- 
+function drawHeart(x, y, w, h) { 
+    push(); 
+    translate(x, y); 
+    beginShape(); 
+    for (let a = 0; a < TWO_PI; a += 0.1) { 
+        let hX = (w / 30) * 16 * pow(sin(a), 3); 
+        let hY = -(h / 30) * (13 * cos(a) - 5 * cos(2 * a) - 2 * cos(3 * a) - cos(4 * a)); 
+        vertex(hX, hY); 
+    } 
+    endShape(CLOSE); 
+    pop(); 
 }
