@@ -1,10 +1,6 @@
 let song;
 let amplitudeMeter; 
-let video; 
-let handPose; 
-let hands = [];
 
-let bowTrail = [];  
 let notes = []; 
 let lanes = ['a', 's', 'd', 'f']; 
 let score = 0;
@@ -12,14 +8,10 @@ let gameState = 'start'; // 'start', 'playing', 'paused'
 
 let songStartTime = 0; // Tracks start time in milliseconds 
 let pauseOffset = 0; // Tracks paused time duration
+let activeRipple = { x: 0, active: false, size: 0 }; // Visual burst for Phase 2
 
 async function setup() {
     createCanvas(800, 600);
-
-    // Mirrored video capture 
-    video = createCapture(VIDEO, { flipped: true }); 
-    video.size(800, 600); 
-    video.hide();
 
     song = await loadSound('assets/gimme.mp3');
     song.amp(0.8); // Set volume to 80%
@@ -27,31 +19,17 @@ async function setup() {
     // Connect loudness meter to sound track 
     amplitudeMeter = new p5.Amplitude(); 
     song.connect(amplitudeMeter);
-
-    handPose = await ml5.handPose({ flipped: true }); 
-    handPose.detectStart(video, (results) => { hands = results; });
-
-    console.log("✅ Setup loaded successfully!");
 }
 
 function draw() {
-    // Render camera feed if available 
-    if (video) { 
-        image(video, 0, 0, width, height); 
-    } else { 
-        background(30); 
-    }
- 
     // Safely read amplitude & timestamp without crashing frame 1! 
     let level = amplitudeMeter ? amplitudeMeter.getLevel() : 0; 
     
     // Calculate elapsed time in seconds using millis() 
-    let t = 0; 
-    if (gameState === 'playing' && song && song.isPlaying()) { 
-        t = (millis() - songStartTime) / 1000; 
-    }
+    let t = (gameState === 'playing' && song && song.isPlaying()) ? (millis() - songStartTime) / 1000 : 0;
 
-    console.log("Current State:", gameState, "Time:", t);
+    // Background color pulses subtly with music loudness 
+    background(20 + level * 40, 20, 40);
 
     // Explicit State Switcher 
     if (gameState === 'start') { 
@@ -60,9 +38,9 @@ function draw() {
         drawPauseOverlay(); 
     } else if (gameState === 'playing') { 
         if (t < 17) { 
-            drawKeyboardGame(level, t); 
+            drawKeyboardPhase1(level, t); 
         } else if (t >= 17 && t <= 34) { 
-            drawGestureTracing(level, t); 
+            drawKeyboardPhase2(level, t); 
         } else { 
             drawScoreScreen(); 
         } 
@@ -78,12 +56,12 @@ function drawStartScreen() {
     if (song) {
         text("🕺 Press SPACE to start ABBA Disco! 🕺", width / 2, height / 2); 
     } else {
-        text("⏳ Loading Audio &amp; AI Model... ⏳", width / 2, height / 2);
+        text("⏳ Loading Audio ... ⏳", width / 2, height / 2);
     }
 }
   
 // 0 to 17 Seconds: Keyboard Rhythm Mode 
-function drawKeyboardGame(level, t) { 
+function drawKeyboardPhase1(level, t) { 
     let targetY = height - 80; 
     
     // Top banner indicator 
@@ -96,14 +74,16 @@ function drawKeyboardGame(level, t) {
     // Render lanes
     for (let i = 0; i < lanes.length; i++) { 
         let laneX = (width / 5) * (i + 1); 
-        stroke(255); 
-        line(laneX, 0, laneX, height); 
+        stroke(255, 100); 
+        strokeWeight(2);
+        line(laneX, 50, laneX, height); 
 
         // Target zone pulses with music loudness 
         fill(100, 200, 255, 150); 
-        ellipse(laneX, targetY, 40 + level * 30); 
+        ellipse(laneX, targetY, 40 + level * 40); 
 
         fill(255); 
+        noStroke();
         textAlign(CENTER, CENTER); 
         textSize(16);
         text(lanes[i].toUpperCase(), laneX, targetY); 
@@ -137,39 +117,35 @@ function drawKeyboardGame(level, t) {
 }
 
 // 17 to 34 Seconds: Hand Gesture Amplitude Tracing Mode 
-function drawGestureTracing(level, t) { 
-    fill(0, 120); 
+function drawKeyboardPhase2(level, t) { 
+    fill(0, 180); 
     rect(0, 0, width, 50); 
 
     fill(255, 220, 0); 
     textAlign(CENTER, CENTER); 
     textSize(18); 
-    text(`PHASE 2: HAND TRACING (${nf(34 - t, 1, 1)}s remaining)`, width / 2, 25); 
+    text(`PHASE 2: RHYTHMIC KEY BURSTS (${nf(34 - t, 1, 1)}s remaining)`, width / 2, 25); 
     
-    if (hands.length > 0 && hands[0].index_finger_tip) { 
-        let finger = hands[0].index_finger_tip; 
-        bowTrail.push({ x: finger.x, y: finger.y }); 
-        if (bowTrail.length > 30) { 
-            bowTrail.shift(); 
-        } 
-        // Draw amplitude-reactive arcing trail 
-        noFill(); 
-        stroke(255, 0, 180, 220); 
-        strokeWeight(4 + level * 35); 
-        // Trail swells with loudness! 
-        beginShape(); 
-        for (let p of bowTrail) { 
-            vertex(p.x, p.y); 
-        } 
-        endShape(); 
-        // Award score while hand moves actively during peak amplitude 
-        if (level > 0.15) { 
-            score += 1; 
-        } 
-        fill(255, 255, 0); 
-        noStroke(); 
-        circle(finger.x, finger.y, 18); 
+    // Display lane key triggers 
+    for (let i = 0; i < lanes.length; i++) { 
+        let laneX = (width / 5) * (i + 1); 
+        fill(255, 150); 
+        textAlign(CENTER, CENTER); 
+        textSize(24); 
+        text(`Tap [ ${lanes[i].toUpperCase()} ]`, laneX, height / 2); 
     } 
+    // Render expanding key-triggered audio-reactive ripple 
+    if (activeRipple.active) { 
+        noFill(); 
+        stroke(255, 0, 180, 200); 
+        strokeWeight(6 + level * 20); 
+        ellipse(activeRipple.x, height / 2, activeRipple.size, activeRipple.size); 
+        activeRipple.size += 15; 
+        if (activeRipple.size > width) { 
+            activeRipple.active = false; 
+        } 
+    }
+
     fill(255); 
     textSize(20); 
     textAlign(LEFT, TOP); 
@@ -198,7 +174,6 @@ function keyPressed() {
     // Toggle Pause Feature 
     if (key === ' ') { 
         userStartAudio();
-        console.log("Space pressed! New state:", gameState);
         
         if (gameState === 'start' && song) { 
             song.play(); 
@@ -217,14 +192,32 @@ function keyPressed() {
     } 
     
     // Process key hits during Phase 1 
-    if (gameState === 'playing' && song && song.isPlaying() && song.currentTime() < 17) {
-        let targetY = height - 80; 
-        for (let i = notes.length - 1; i >= 0; i--) { 
-            let n = notes[i]; 
-            let matchedKey = lanes[n.lane]; 
-            if (key.toLowerCase() === matchedKey && abs(n.y - targetY) < 30) { 
-                score += 10; 
-                notes.splice(i, 1); 
+    if (gameState === 'playing' && song && song.isPlaying()) { 
+        let t = (millis() - songStartTime) / 1000; 
+        
+        // Phase 1: Key hits on falling notes (0 to 17s) 
+        if (t < 17) { 
+            let targetY = height - 80; 
+            for (let i = notes.length - 1; i >= 0; i--) { 
+                let n = notes[i]; 
+                let matchedKey = lanes[n.lane]; 
+                if (key.toLowerCase() === matchedKey && abs(n.y - targetY) < 30) { 
+                    score += 10; 
+                    notes.splice(i, 1); 
+                } 
+            } 
+        }
+
+        // Phase 2: Key hits trigger visual amplitude ripples (17 to 34s) 
+        else if (t >= 17 && t <= 34) { 
+            let keyIndex = lanes.indexOf(key.toLowerCase()); 
+            if (keyIndex !== -1) { 
+                activeRipple = { 
+                    x: (width / 5) * (keyIndex + 1), 
+                    active: true, 
+                    size: 20 
+                }; 
+                score += 5; 
             } 
         } 
     } 
