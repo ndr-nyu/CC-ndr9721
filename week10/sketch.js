@@ -1,55 +1,95 @@
-let song;
+let songs = [];
 let amplitudeMeter; 
 let fft;
 
+// Define custom timing & settings for each track 
+let trackData = [ 
+    { title: "Gimme! Gimme! Gimme!", file: "assets/gimme.mp3", bpm: 120, offset: 1.1, p1End: 18, totalEnd: 34 }, 
+    { title: "More Than A Woman", file: "assets/woman.mp3", bpm: 128, offset: 0.8, p1End: 9, totalEnd: 30 }, 
+    { title: "I Will Survive", file: "assets/survive.mp3", bpm: 110, offset: 1.5, p1End: 23, totalEnd: 40 } 
+];
+
+let currentTrackIndex = 0; 
+let song;
+
 let notes = []; 
+let noteSchedule = [];
 let lanes = ['a', 's', 'd', 'f']; 
 let score = 0;
-let gameState = 'start'; // 'start', 'playing', 'paused'
+let gameState = 'title'; // 'start', 'playing', 'paused'
 
 let songStartTime = 0; // Tracks start time in milliseconds 
 let pauseOffset = 0; // Tracks paused time duration
 let activeRipple = { x: 0, active: false, size: 0 }; // Visual burst for Phase 2
 
-let noteSchedule = [];
-
 async function setup() {
     createCanvas(800, 600);
 
-    song = await loadSound('assets/gimme.mp3');
-    song.amp(0.8); // Set volume to 80%
-
-    // Connect loudness meter to sound track 
+    songs = await Promise.all([ 
+        loadSound(trackData[0].file), 
+        loadSound(trackData[1].file), 
+        loadSound(trackData[2].file) 
+    ]);
+ 
     amplitudeMeter = new p5.Amplitude(); 
-    song.connect(amplitudeMeter);
+    fft = new p5.FFT(32);
+}
 
-    // 32-band FFT frequency analyzer 
-    fft = new p5.FFT(32); 
+function startTrack(index) { 
+    if (song && song.isPlaying()) { 
+        song.stop(); 
+    }
+    
+    currentTrackIndex = index; 
+    song = songs[currentTrackIndex]; 
+    song.amp(0.8); 
+    
+    // Connect analyzer to selected song 
+    song.connect(amplitudeMeter); 
     song.connect(fft); 
     
-    // Generate beat schedule at 120 BPM 
-    generateBeatSchedule();
+    // Reset game state and generate track-specific beat schedule 
+    score = 0; 
+    notes = []; 
+    generateBeatSchedule(); 
+
+    userStartAudio(); 
+    song.play(); 
+    songStartTime = millis(); 
+    gameState = 'playing';
 }
 
 function generateBeatSchedule() { 
-    let bpm = 120; 
-    let beatInterval = 60 / bpm; // 0.5s per beat 
-    let songOffset = 1.1; 
+    noteSchedule = []; 
+    let track = trackData[currentTrackIndex]; 
+    let beatInterval = 60 / track.bpm; 
     
-    for (let t = songOffset; t < 34; t += beatInterval) { 
+    for (let t = track.offset; t < track.totalEnd; t += beatInterval) { 
         let laneChoice = floor(random(4)); 
         noteSchedule.push({ time: t, lane: laneChoice }); 
     } 
 }
 
 function draw() {
-    // Safely read amplitude & timestamp without crashing frame 1! 
+    let track = trackData[currentTrackIndex]; 
     let level = amplitudeMeter ? amplitudeMeter.getLevel() : 0; 
+    let t = (gameState === 'playing' && song && song.isPlaying()) ? (millis() - songStartTime) / 1000 : 0; 
     
-    // Calculate elapsed time in seconds using millis() 
-    let t = (gameState === 'playing' && song && song.isPlaying()) ? (millis() - songStartTime) / 1000 : 0;
-
     background(15, 15, 30);
+
+    // Title Screen: 70s Disco Ball Effect 
+    if (gameState === 'title') { 
+        drawDiscoBall(); 
+        drawTitleScreen(); 
+        return; 
+    } 
+    
+    // Song Selection Screen 
+    if (gameState === 'select') { 
+        drawDiscoBall(); 
+        drawSongSelectionScreen(); 
+        return; 
+    }
 
     // Draw Live FFT Frequency Spectrum Visualizer in Background 
     if (fft && gameState === 'playing') { 
@@ -67,18 +107,88 @@ function draw() {
     updateNoteSpawning(t);
 
     // Explicit State Switcher 
-    if (gameState === 'start') { 
-        drawStartScreen(); 
-    } else if (gameState === 'paused') { 
+    if (gameState === 'paused') { 
         drawPauseOverlay(); 
     } else if (gameState === 'playing') { 
-        if (t < 18) { 
-            drawKeyboardPhase1(level, t); 
-        } else if (t >= 18 && t <= 34) { 
-            drawKeyboardPhase2(level, t); 
+        if (t < track.p1End) { 
+            drawKeyboardPhase1(level, t, track); 
+        } else if (t >= track.p1End && t <= track.totalEnd) { 
+            drawKeyboardPhase2(level, t, track); 
         } else { 
-            drawScoreScreen(); 
+            gameState = 'score'; 
+        }
+    } else if (gameState === 'score') { 
+        drawScoreScreen();
+    } 
+}
+
+function drawDiscoBall() { 
+    push(); 
+    translate(width / 2, 120); 
+    
+    // Soft outer glow 
+    fill(255, 255, 255, 15); 
+    noStroke(); 
+    circle(0, 0, 180 + sin(frameCount * 0.05) * 10); 
+    
+    // Main ball body 
+    fill(180, 190, 210, 60); 
+    stroke(255, 100); 
+    strokeWeight(1); 
+    circle(0, 0, 140);
+
+    // Rotating specular facets 
+    let t = frameCount * 0.02; 
+    for (let x = -60; x <= 60; x += 20) { 
+        for (let y = -60; y <= 60; y += 20) { 
+            if (dist(0, 0, x, y) < 65) { 
+                let spark = sin(t + x + y) * 120 + 135; 
+                fill(spark, spark, 255, 80); 
+                rect(x - 6, y - 6, 12, 12, 2); 
+            } 
         } 
+    } 
+    
+    pop(); 
+}
+
+function drawTitleScreen() { 
+    fill(0, 160); 
+    rect(0, 0, width, height); 
+    textAlign(CENTER, CENTER); 
+    fill(255, 220, 0); 
+    textSize(36); 
+    text("✨ WELCOME TO 70s KEYBOARD DISCO ✨", width / 2, height / 2 - 20); 
+
+    fill(200, 240, 255); 
+    textSize(20); 
+    text("Press ANY KEY to Start", width / 2, height / 2 + 50); 
+}
+
+function drawSongSelectionScreen() { 
+    fill(0, 160); 
+    rect(0, 0, width, height); 
+    textAlign(CENTER, CENTER); 
+    fill(255); 
+    textSize(28); 
+    text("🪩 SELECT YOUR TRACK 🪩", width / 2, 80);
+
+    // Draw 3 Interactive Buttons 
+    for (let i = 0; i < trackData.length; i++) { 
+        let btnY = 180 + i * 90; 
+        let isHovered = mouseX > width / 2 - 180 && mouseX < width / 2 + 180 && mouseY > btnY - 30 && mouseY < btnY + 30; 
+
+        // Button background 
+        stroke(255, 200); 
+        strokeWeight(2); 
+        fill(isHovered ? color(255, 0, 150, 200) : color(40, 30, 80, 180)); 
+        rect(width / 2 - 180, btnY - 30, 360, 60, 12); 
+
+        // Button text 
+        noStroke(); 
+        fill(255); 
+        textSize(18); 
+        text(`${trackData[i].title} (${trackData[i].bpm} BPM)`, width / 2, btnY); 
     } 
 }
 
@@ -100,34 +210,20 @@ function updateNoteSpawning(t) {
     } 
 }
 
-function drawStartScreen() { 
-    fill(0, 180); 
-    rect(0, 0, width, height); 
-    fill(255); 
-    textAlign(CENTER, CENTER); 
-    textSize(24); 
-    if (song) {
-        text("🕺 Press SPACE to start ABBA Disco! 🕺", width / 2, height / 2); 
-    } else {
-        text("⏳ Loading Audio ... ⏳", width / 2, height / 2);
-    }
-}
-  
-// 0 to 18 Seconds: Keyboard Rhythm Mode 
-function drawKeyboardPhase1(level, t) { 
-    drawLanesAndNotes(level, t, "PHASE 1: RHYTHMIC NOTES");
+function drawKeyboardPhase1(level, t, track) { 
+    drawLanesAndNotes(level, t, "PHASE 1: RHYTHMIC NOTES", track.p1End);
 }
 
-// 18 to 34 Seconds: Hand Gesture Amplitude Tracing Mode 
-function drawKeyboardPhase2(level, t) { 
-    drawLanesAndNotes(level, t, "PHASE 2: NOTE BURST VISUALIZER");
+function drawKeyboardPhase2(level, t, track) { 
+    drawLanesAndNotes(level, t, "PHASE 2: NOTE BURST VISUALIZER", track.totalEnd);
 
     // Render expanding key-triggered audio-reactive ripple 
     if (activeRipple.active) { 
         noFill(); 
-        stroke(255, 0, 180, 200); 
+        stroke(255, 0, 180, 220); 
         strokeWeight(4 + level * 30); 
         ellipse(activeRipple.x, height - 80, activeRipple.size, activeRipple.size); 
+
         activeRipple.size += 12; 
         if (activeRipple.size > 250) { 
             activeRipple.active = false; 
@@ -135,7 +231,7 @@ function drawKeyboardPhase2(level, t) {
     }
 }
 
-function drawLanesAndNotes(level, t, phaseTitle) { 
+function drawLanesAndNotes(level, t, phaseTitle, targetTime) { 
     let targetY = height - 80; 
     
     // Top timer banner 
@@ -144,7 +240,7 @@ function drawLanesAndNotes(level, t, phaseTitle) {
     fill(255, 220, 0); 
     textAlign(CENTER, CENTER); 
     textSize(18); 
-    let remaining = t < 18 ? 18 - t : 34 - t; 
+    let remaining = max(0, targetTime - t); 
     text(`${phaseTitle} (${nf(max(0, remaining), 1, 1)}s remaining)`, width / 2, 25); 
     
     // Render lanes & target indicators 
@@ -168,6 +264,7 @@ function drawLanesAndNotes(level, t, phaseTitle) {
     for (let i = notes.length - 1; i >= 0; i--) { 
         let n = notes[i]; 
         let laneX = (width / 5) * (n.lane + 1); 
+
         fill(0, 255, 200); 
         circle(laneX, n.y, 30); 
         n.y += n.speed; 
@@ -175,6 +272,7 @@ function drawLanesAndNotes(level, t, phaseTitle) {
             notes.splice(i, 1); 
         } 
     } 
+
     fill(255); 
     textSize(20); 
     textAlign(LEFT, TOP); 
@@ -197,18 +295,56 @@ function drawScoreScreen() {
     textAlign(CENTER, CENTER); 
     textSize(32); 
     text(`🎉 STAGE COMPLETE! 🎉 \n Final Score: ${score}`, width / 2, height / 2); 
+
+    // Return Button 
+    let btnY = height / 2 + 50; 
+    let isHovered = mouseX > width / 2 - 140 && mouseX < width / 2 + 140 && mouseY > btnY - 25 && mouseY < btnY + 25; 
+    
+    stroke(255); 
+    strokeWeight(2); 
+    fill(isHovered ? color(0, 200, 255) : color(60, 40, 100)); 
+    rect(width / 2 - 140, btnY - 25, 280, 50, 10); 
+    
+    noStroke(); 
+    fill(255); 
+    textSize(18); 
+    text("🔄 CHOOSE ANOTHER SONG", width / 2, btnY);
+}
+
+function mousePressed() { 
+    // Handle Song Menu Clicks 
+    if (gameState === 'select') { 
+        for (let i = 0; i < trackData.length; i++) { 
+            let btnY = 180 + i * 90; 
+            if (mouseX > width / 2 - 180 && mouseX < width / 2 + 180 && mouseY > btnY - 30 && mouseY < btnY + 30) { 
+                startTrack(i); 
+                return; 
+            } 
+        } 
+    } 
+    
+    // Handle Return to Menu Click on Score Screen 
+    if (gameState === 'score') { 
+        let btnY = height / 2 + 50; 
+        if (mouseX > width / 2 - 140 && mouseX < width / 2 + 140 && mouseY > btnY - 25 && mouseY < btnY + 25) { 
+            if (song && song.isPlaying()) song.stop(); 
+            gameState = 'select'; 
+        } 
+    } 
 }
 
 function keyPressed() { 
+    // Title Screen: Any key advances to Song Selection 
+    if (gameState === 'title') { 
+        gameState = 'select'; 
+        return; 
+    }
+    
     // Toggle Pause Feature 
     if (key === ' ') { 
         userStartAudio();
         
-        if (gameState === 'start' && song) { 
-            song.play(); 
-            songStartTime = millis(); 
-            gameState = 'playing'; 
-        } else if (gameState === 'playing') { 
+        if (gameState === 'playing') { 
             song.pause(); 
             pauseOffset = millis() - songStartTime; 
             gameState = 'paused'; 
@@ -222,6 +358,7 @@ function keyPressed() {
     
     // Process key hits during Phase 1 
     if (gameState === 'playing' && song && song.isPlaying()) { 
+        let track = trackData[currentTrackIndex];
         let t = (millis() - songStartTime) / 1000; 
         let targetY = height - 80;
         
@@ -234,7 +371,7 @@ function keyPressed() {
                 score += 10; 
 
                 // Trigger visual ripple burst during Phase 2! 
-                if (t >= 18 && t <= 34) { 
+                if (t >= track.p1End && t <= track.totalEnd) { 
                     activeRipple = { 
                         x: (width / 5) * (n.lane + 1), 
                         active: true, 
