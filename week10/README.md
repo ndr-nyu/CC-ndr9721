@@ -1,4 +1,5 @@
-# week10
+# Week 10 Notes
+I converted my instrument into a game where you use the keys "a, s, d and f" on your keyboard to hit the falling notes. Hitting the right notes creates a visual ripple effect. The song frequency is also mapped in a radial pattern in the center of the screen. Bass freqencies are mapped on the central ring radius, and mid to high frequencies extend outward from the center. The volume of the song also changes the scale of the radial pattern and the hue of it.
 
 ## Getting Started
 

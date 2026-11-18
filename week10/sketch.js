@@ -22,6 +22,9 @@ let songStartTime = 0; // Tracks start time in milliseconds
 let pauseOffset = 0; // Tracks paused time duration
 let activeRipple = { x: 0, active: false, size: 0 }; // Visual burst for Phase 2
 
+let visualHue = 180; 
+let visualScale = 1.0;
+
 async function setup() {
     createCanvas(800, 600);
 
@@ -30,6 +33,8 @@ async function setup() {
         loadSound(trackData[1].file), 
         loadSound(trackData[2].file) 
     ]);
+
+    console.log("Audio files loaded!", songs);
  
     amplitudeMeter = new p5.Amplitude(); 
     fft = new p5.FFT(32);
@@ -51,6 +56,9 @@ function startTrack(index) {
     // Reset game state and generate track-specific beat schedule 
     score = 0; 
     notes = []; 
+    visualScale = 1.0; 
+    visualHue = 180;
+    activeRipple.active = false;
     generateBeatSchedule(); 
 
     userStartAudio(); 
@@ -75,7 +83,11 @@ function draw() {
     let level = amplitudeMeter ? amplitudeMeter.getLevel() : 0; 
     let t = (gameState === 'playing' && song && song.isPlaying()) ? (millis() - songStartTime) / 1000 : 0; 
     
-    background(15, 15, 30);
+    background(10, 8, 20);
+
+    // Smoothly decay visual pulse & slowly drift base color 
+    visualScale = lerp(visualScale, 1.0, 0.03); 
+    visualHue = (visualHue + 0.2) % 360;
 
     // Title Screen: 70s Disco Ball Effect 
     if (gameState === 'title') { 
@@ -91,16 +103,10 @@ function draw() {
         return; 
     }
 
-    // Draw Live FFT Frequency Spectrum Visualizer in Background 
-    if (fft && gameState === 'playing') { 
-        let spectrum = fft.analyze(); 
-        let barWidth = width / spectrum.length; 
-        for (let i = 0; i < spectrum.length; i++) { 
-            let barHeight = map(spectrum[i], 0, 1, 0, height * 0.4); 
-            fill(100 + i * 5, 120, 255 - i * 5, 100); 
-            noStroke(); 
-            rect(i * barWidth, height - barHeight, barWidth - 2, barHeight); 
-        } 
+    // Centered Sound Wave Visualizer (FFT Waveform Layer) 
+    if (fft && (gameState === 'playing' || gameState === 'paused')) { 
+        let wave = fft.waveform(); // Retrieve time-domain audio samples (-1 to 1) 
+        drawCenteredWaveform(wave, level);
     }
 
     // Spawn notes from noteSchedule based on song time 
@@ -120,6 +126,51 @@ function draw() {
     } else if (gameState === 'score') { 
         drawScoreScreen();
     } 
+    if (frameCount % 60 === 0) console.log("Current Level:", level);
+}
+
+function drawCenteredWaveform(wave, level) { 
+    // Safety check: don't draw if wave array isn't ready 
+    if (!wave || wave.length === 0) return;
+
+    push(); 
+    colorMode(HSB, 360, 100, 100, 100); 
+    noFill(); 
+    let centerY = height / 2 - 20; 
+    
+    // First and last coordinates for curveVertex anchoring 
+    let startX = map(0, 0, wave.length, 40, width - 40); 
+    let startY = centerY + wave[0] * 100 * visualScale; 
+    let endI = wave.length - 1; 
+    let endX = map(endI, 0, wave.length, 40, width - 40); 
+    let endY = centerY + wave[endI] * 100 * visualScale;
+
+    // Soft Ambient Outer Glow 
+    stroke(visualHue, 50, 90, 20); // Low alpha for a subtle glow 
+    strokeWeight(18 + level * 20); 
+    beginShape(); 
+    curveVertex(startX, startY); // Anchor point 
+    for (let i = 0; i < wave.length; i += 6) { 
+        let x = map(i, 0, wave.length, 40, width - 40); 
+        let y = centerY + wave[i] * 110 * visualScale; 
+        curveVertex(x, y); 
+    } 
+    curveVertex(endX, endY); // Anchor point 
+    endShape();
+
+    // Smooth Blended Inner Wave Line 
+    stroke((visualHue + 30) % 360, 60, 95, 45); // Softened opacity 
+    strokeWeight(4 + level * 6); 
+    beginShape(); 
+    curveVertex(startX, startY); 
+    for (let i = 0; i < wave.length; i += 3) { 
+        let x = map(i, 0, wave.length, 40, width - 40); 
+        let y = centerY + wave[i] * 90 * visualScale; 
+        curveVertex(x, y); 
+    } 
+    curveVertex(endX, endY); 
+    endShape(); 
+    pop();
 }
 
 function drawDiscoBall() { 
@@ -331,6 +382,8 @@ function mousePressed() {
             gameState = 'select'; 
         } 
     } 
+    
+    console.log("Button clicked at:", mouseX, mouseY);
 }
 
 function keyPressed() { 
@@ -370,6 +423,9 @@ function keyPressed() {
             if (key.toLowerCase() === matchedKey && abs(n.y - targetY) < 30) { 
                 score += 10; 
 
+                visualScale += 0.2; 
+                visualHue = (visualHue + 25) % 360;
+
                 // Trigger visual ripple burst during Phase 2! 
                 if (t >= track.p1End && t <= track.totalEnd) { 
                     activeRipple = { 
@@ -383,4 +439,6 @@ function keyPressed() {
             } 
         }
     } 
+
+    console.log("Key hit:", key);
 }
