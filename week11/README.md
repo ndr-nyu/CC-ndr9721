@@ -1,4 +1,5 @@
-# week11
+# Week 11 Notes
+For this week's project, I used an Open Weather Map API to create a vacation location finder. If a city's current weather is 75 degrees or above, it is considered a potential vacation spot and triggers a sun and confetti animation. If the city's weather is between 75 and 50 degrees, it generates a cloudy animation. Between 50 and 32 degrees generates rain and lastly, 32 degrees or lower creates a snowy animation. These animations are created using arrays and for loops. Additionally, the different temperatures are also set up to map a correlating HSB hue on the background. Please note that I used the LLM to help me write the code.
 
 ## Getting Started
 
